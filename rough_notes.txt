@@ -1,0 +1,40 @@
+MICROK8s full kubeflow setup with canonical charmed:
+
+
+1. snap install microk8s --classic --channel=1.21/stable
+2. microk8s start
+3. cd ~/.kube/
+   microk8s config > config # this creates the kubernetes config file in the default location where other apps will look for it
+
+4.  microk8s enable storage
+	microk8s enable dns
+	microk8s enable metallb:10.64.140.43-10.64.140.49
+
+# this was to solve microk8s inspect warnings, probably not needed
+sudo iptables -P FORWARD ACCEPT
+sudo vim /etc/docker/daemon.json 
+	 add: "insecure-registries" : ["localhost:32000"]
+
+5. snap install juju --classic
+6. juju add-k8s myk8s
+8. juju bootstrap myk8s my-controller
+9. juju add-model kubeflow
+10. juju deploy kubeflow-lite --trust
+
+WAIT UNTIL ALL KUBEFLOW COMPONENTS ARE IN 'running' STATUS
+
+11. add RBAC role
+	kubectl patch role -n kubeflow istio-ingressgateway-operator -p '{"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role","metadata":{"name":"istio-ingressgateway-operator"},"rules":[{"apiGroups":["*"],"resources":["*"],"verbs":["*"]}]}'
+
+
+12. configure dex & oidc gatekeeper:
+juju config dex-auth public-url=http://10.64.140.43.nip.io
+juju config oidc-gatekeeper public-url=http://10.64.140.43.nip.io
+
+
+13. run the following commands to get the username/password:
+
+juju config dex-auth static-username=admin
+juju config dex-auth static-password=admin
+
+
